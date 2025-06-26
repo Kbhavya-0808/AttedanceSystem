@@ -1,6 +1,7 @@
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
 import os
+import glob
 
 # ✅ Read student names from selected Excel file
 def get_students(file_name):
@@ -26,6 +27,7 @@ def mark_attendance(file_name, present_students):
     wb = load_workbook(file_name)
     ws = wb.active
 
+    # Prevent duplicate entry for the same date
     for col in range(2, ws.max_column + 1):
         if ws.cell(row=1, column=col).value == today:
             wb.close()
@@ -45,7 +47,7 @@ def mark_attendance(file_name, present_students):
 
 # ✅ Merge all student names into a single Excel file
 def merge_all_students(output_file="all_students.xlsx"):
-    class_files = ["ClassA.xlsx", "ClassB.xlsx", "ClassC.xlsx"]
+    class_files = [f for f in glob.glob("*.xlsx") if f != output_file]
     wb_out = Workbook()
     ws_out = wb_out.active
     ws_out.title = "All Students"
@@ -64,3 +66,32 @@ def merge_all_students(output_file="all_students.xlsx"):
 
     wb_out.save(output_file)
     return output_file
+
+# ✅ Get absentees for a given date from selected file
+def get_absentees(file_name, target_date):
+    if not os.path.exists(file_name):
+        return []
+
+    wb = load_workbook(file_name)
+    ws = wb.active
+
+    # Find the date column
+    date_col = None
+    for col in range(2, ws.max_column + 1):
+        if ws.cell(row=1, column=col).value == target_date:
+            date_col = col
+            break
+
+    if not date_col:
+        wb.close()
+        return ["Date not found in sheet."]
+
+    absentees = []
+    for row in range(2, ws.max_row + 1):
+        status = ws.cell(row=row, column=date_col).value
+        if status == "A":
+            name = ws.cell(row=row, column=1).value
+            absentees.append(name)
+
+    wb.close()
+    return absentees
